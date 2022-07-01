@@ -47,7 +47,7 @@ def data_update():
 		data.to_csv("data.csv",index = False)
 		print("file \"data.csv\" created!")
 
-def Timer(t = 15):
+def Timer(t = 600):
 	while t+1:
 		minutes = t // 60
 		seconds = t % 60
@@ -57,13 +57,14 @@ def Timer(t = 15):
 		time.sleep(1)
 		while start_stop_event.is_set():
 			time.sleep(1)
-		if(exit_event.is_set()):
+		if(exit_event.is_set() or skip_timer_event.is_set()):
 			break
 
 def thread1():
 	while exit_event.is_set()==False:
-		print("'s' - start/stop timer , esc - exit")
+		print("'p' - start/stop Timer,'s' - skip Timer , esc - exit")
 		Timer()
+		skip_timer_event.clear()
 		print("     ",end="\r")
 		if(exit_event.is_set()==False):
 			data_update()
@@ -72,11 +73,13 @@ def thread1():
 
 def on_press(key):
 	if type(key) == pynput.keyboard._win32.KeyCode:
-		if key.char == 's':
+		if key.char == 'p':
 			if(start_stop_event.is_set()==False):
 				start_stop_event.set()
 			else:
 				start_stop_event.clear()
+		elif key.char == 's':
+			skip_timer_event.set()
 
 
 
@@ -86,8 +89,9 @@ def on_release(key):
 		start_stop_event.clear()
 		return False
 
-start_stop_event = threading.Event()
-exit_event = threading.Event()
+start_stop_event = threading.Event()# if set (True) - timer is stopped
+exit_event = threading.Event()#close the program
+skip_timer_event = threading.Event()# if True - ignore Timer 1 cycle
 thrd1 = threading.Thread(target=thread1)
 thrd1.start()
 with Listener(on_press = on_press,on_release = on_release) as listener:
